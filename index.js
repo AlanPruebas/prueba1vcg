@@ -1,46 +1,44 @@
-import express from "express";
-import { check, validationResult } from "express-validator";
+import express from 'express';
+import { param } from 'express-validator';
+import mysql from 'mysql2/promise';
 
 const app = express();
 app.use(express.json());
 
-app.use(express.json());
+const db = mysql.createPool({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'basededatos'
+});
 
-app.post(
-    '/insercion',
-    [
-        check('nombre', 'El nombre no puede ir vacio').notEmpty(),
-        check('email','Eso no parece un email').isEmail(),
-        check('password', 'El password no debe tener menos de 6 caracteres').isLength({min:6})
-    ], (req, res) => {
-        let resultado = validationResult(req);
-        if(!resultado.isEmpty()){
-            return res.json({
-                ok:false,
-                errores: resultado.array()
-            })
-        }
-        res.json({
-            ok: true,
-            msg: 'Registro Insertado'
-        });
-    }
-);
 
-app.get('/empleado', (req, res) => {
-    res.send('Obteniendo Empleados');});
+app.get('/', (req, res)=>{
+    res.send('servidor funcionando correctamente...');
+});
 
-/*app.post('/insercion', (req, res) => {
-    res.send(req.body);});*/
+app.get('/productos', async (req, res) => {
+    const [resultado] = await db.query('SELECT * FROM productos');
+    res.status(200).json(resultado);
+});
 
-app.put('/actualiza', (req, res) => {
-    res.send('Actualizando Empleados (put)');});
+app.post('/productos/adi', async (req, res) => {
+    const [nombre, precio] = [req.body.nombre, req.body.precio,];
+    const resultado =await db.query('INSERT INTO productos (nombre, precio) VALUES (?,?)',[nombre, precio]);
+    res.status(201).json(resultado);
+});
 
-app.patch('/Actualizacion', (req,res) => {
-    res.send('Actualizando Empleado (patch)');});
+app.put('/productos/:id', async (req, res) =>{
+    const id = req.params.id;
+    const {nombre, precio} = req.body;
+    const resultado = await db.query('UPDATE productos SET nombre = ?, precio = ? WHERE id = ?', [nombre, precio, id]);
+    res.status(200).json(resultado);
+});
 
-app.delete('/elimina', (req, res) => {
-    res.send('Eliminando Empleados');
+app.delete('/productos/:id', async (req,res) => {
+    const id = req.params.id;
+    const resultado = await db.query('DELETE from productos WHERE id = ?', [id]);
+    res.resultado(200).json({message: 'Producto Eliminado correctamente'});
 });
 
 const puerto = 3001;
